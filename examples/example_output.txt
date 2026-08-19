@@ -1,0 +1,36 @@
+FHE latency-optimization practice report
+------------------------------------------
+1. supported lower-bit quantization: FEASIBLE
+   baseline: 100.00 ms
+   candidate: 78.00 ms
+   accuracy: 0.970
+   speedup: 1.28x
+   reason: Candidate to test only if the selected Concrete ML release supports it.
+2. representative calibration: FEASIBLE
+   baseline: 100.00 ms
+   candidate: 92.00 ms
+   accuracy: 0.980
+   speedup: 1.09x
+   reason: Candidate to test by compiling with a representative calibration set.
+3. baseline Concrete ML configuration: FEASIBLE
+   baseline: 100.00 ms
+   candidate: 100.00 ms
+   accuracy: 0.980
+   speedup: 1.00x
+   reason: Reference configuration for comparison.
+4. native bootstrapping modification: REJECTED
+   baseline: 100.00 ms
+   candidate: 55.00 ms
+   accuracy: 0.960
+   speedup: 1.82x
+   reason: Rejected for this practice prototype because it requires backend changes.
+5. unsafe low-bit candidate: REJECTED
+   baseline: 100.00 ms
+   candidate: 60.00 ms
+   accuracy: 0.880
+   speedup: 1.67x
+   reason: Rejected because it fails the accuracy floor.
+
+Selected practice candidate:
+supported lower-bit quantization (1.28x estimated speedup)
+Replace the example timings with real FHE measurements before reporting results.
