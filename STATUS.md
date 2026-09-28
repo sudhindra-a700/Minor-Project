@@ -22,3 +22,16 @@ This repository does not yet claim a real FHE speedup, encrypted CatBoost infere
 ## Next milestone
 
 Compile one small Concrete ML-supported model, measure its default latency, test one supported candidate method, and compare correctness and latency using the same inputs and hardware.
+
+
+## Monitoring/backend integration branch
+
+- Added reusable CPU/RAM monitoring modules under `src/monitoring/`.
+- Added per-call profiling and CSV/JSON metric storage.
+- Added a FastAPI scaffold for encrypted Concrete ML server inference.
+- Added monitoring API endpoints for latest run, history, and detailed CPU/RAM samples.
+- Added a client-side reference script for encrypted request/decryption flow.
+- Added model-export and monitoring smoke-test examples.
+- Added documentation for local backend integration and later GCP deployment.
+
+The monitoring code is implemented as infrastructure, but real FHE measurements still require an exported compiled Concrete ML model. No Random-vs-SAC speedup is claimed by these code changes alone.

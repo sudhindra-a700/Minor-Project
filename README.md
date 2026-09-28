@@ -21,12 +21,33 @@ fhe-latency-optimization-progress/
 ├── README.md
 ├── STATUS.md
 ├── src/
-│   └── simple_latency_optimizer.py
+│   ├── simple_latency_optimizer.py
+│   └── monitoring/
+│       ├── resource_monitor.py
+│       ├── profiler.py
+│       └── metrics_store.py
+├── backend/
+│   └── app/
+│       ├── main.py
+│       ├── routes/
+│       │   ├── fhe.py
+│       │   └── monitoring.py
+│       └── services/
+│           ├── fhe_server.py
+│           └── monitoring_service.py
 ├── docs/
 │   ├── literature_review.md
-│   └── optimization_plan.md
+│   ├── optimization_plan.md
+│   ├── monitoring_system.md
+│   └── monitoring_backend_integration.md
 ├── examples/
-│   └── example_output.txt
+│   ├── example_output.txt
+│   ├── monitor_test.py
+│   ├── secure_client.py
+│   └── export_concrete_model.py
+├── model/
+│   └── fhe_deployment/
+├── monitoring_results/
 └── artifacts/
     └── .gitkeep
 ```
@@ -84,3 +105,27 @@ The following items are intentionally marked as future or conditional work: nati
 [4]: https://eprint.iacr.org/2025/713 "LOHEN research paper"
 
 [5]: https://arxiv.org/html/2311.03470v3 "Orion research paper"
+
+
+## Monitoring and backend integration
+
+A reusable monitoring subsystem and FastAPI backend scaffold are now included on the monitoring integration branch. The monitoring code is intentionally separate from the ML prediction features: it measures the cost of encrypted execution rather than using CPU or RAM as XGBoost inputs.
+
+The backend exposes:
+
+- `GET /health`
+- `GET /api/fhe/status`
+- `POST /api/fhe/predict`
+- `GET /api/monitor/latest`
+- `GET /api/monitor/history`
+- `GET /api/monitor/run/{run_id}`
+
+The intended privacy-preserving deployment keeps client secret keys off the server. Client-side code encrypts the financial input, the FastAPI service runs the Concrete ML server artifact on ciphertext, and the client decrypts the encrypted result.
+
+Run the standalone monitor smoke test with:
+
+```bash
+python examples/monitor_test.py
+```
+
+See `docs/monitoring_system.md` and `docs/monitoring_backend_integration.md` for the complete wiring plan. Real FHE performance results are still not claimed until the compiled Concrete ML model is exported and repeated measurements are collected.
