@@ -4,6 +4,7 @@ import os
 import threading
 import time
 from dataclasses import dataclass, asdict
+
 import psutil
 
 
@@ -28,32 +29,40 @@ class ResourceMonitor:
         self._thread: threading.Thread | None = None
         self._stop = threading.Event()
 
-    def _loop(self) -> None:
-        psutil.cpu_percent(interval=None)
-        self.process.cpu_percent(interval=None)
+    def _sample_once(self) -> ResourceSample:
+        vm = psutil.virtual_memory()
+        return ResourceSample(
+            elapsed_s=time.perf_counter() - self._start,
+            system_cpu_percent=psutil.cpu_percent(interval=None),
+            process_cpu_percent=self.process.cpu_percent(interval=None),
+            process_rss_mb=self.process.memory_info().rss / (1024 ** 2),
+            system_ram_percent=vm.percent,
+            process_threads=self.process.num_threads(),
+        )
 
+    def _loop(self) -> None:
         while not self._stop.is_set():
             try:
-                vm = psutil.virtual_memory()
-                self.samples.append(
-                    ResourceSample(
-                        elapsed_s=time.perf_counter() - self._start,
-                        system_cpu_percent=psutil.cpu_percent(interval=None),
-                        process_cpu_percent=self.process.cpu_percent(interval=None),
-                        process_rss_mb=self.process.memory_info().rss / (1024 ** 2),
-                        system_ram_percent=vm.percent,
-                        process_threads=self.process.num_threads(),
-                    )
-                )
+                self.samples.append(self._sample_once())
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 pass
-
             self._stop.wait(self.interval)
 
     def start(self) -> None:
         self.samples = []
         self._stop.clear()
         self._start = time.perf_counter()
+
+        # Prime CPU counters before collecting samples.
+        psutil.cpu_percent(interval=None)
+        self.process.cpu_percent(interval=None)
+
+        # Capture one sample immediately so even short calls have resource data.
+        try:
+            self.samples.append(self._sample_once())
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+
         self._thread = threading.Thread(target=self._loop, daemon=True)
         self._thread.start()
 
@@ -63,9 +72,26 @@ class ResourceMonitor:
             self._thread.join(timeout=2)
         self._thread = None
 
+        # Capture a final point so the time-series includes the end of the call.
+        try:
+            self.samples.append(self._sample_once())
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+
     def summary(self) -> dict:
         if not self.samples:
-            return {}
+            return {
+                "sample_count": 0,
+                "avg_system_cpu_percent": 0.0,
+                "peak_system_cpu_percent": 0.0,
+                "avg_process_cpu_percent": 0.0,
+                "peak_process_cpu_percent": 0.0,
+                "avg_process_rss_mb": 0.0,
+                "peak_process_rss_mb": 0.0,
+                "avg_system_ram_percent": 0.0,
+                "peak_system_ram_percent": 0.0,
+                "peak_threads": 0,
+            }
 
         def values(name: str) -> list[float]:
             return [getattr(x, name) for x in self.samples]
