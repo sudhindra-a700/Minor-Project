@@ -1,8 +1,6 @@
 from pathlib import Path
 from threading import Lock
 
-from concrete.ml.deployment import FHEModelServer
-
 from backend.app.config import FHE_DEPLOYMENT_DIR
 
 
@@ -21,6 +19,16 @@ class FHEServerService:
                     raise FileNotFoundError(
                         f"FHE deployment directory not found: {self.deployment_dir}"
                     )
+
+                # Import lazily so /health and monitoring endpoints can still
+                # start even before Concrete ML is installed/configured.
+                try:
+                    from concrete.ml.deployment import FHEModelServer
+                except ImportError as exc:
+                    raise RuntimeError(
+                        "Concrete ML is not installed. Install the exact version "
+                        "used to export the deployment artifacts."
+                    ) from exc
 
                 server = FHEModelServer(path_dir=str(self.deployment_dir))
                 server.load()
